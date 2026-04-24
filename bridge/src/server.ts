@@ -41,6 +41,7 @@ interface AgentState {
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
+  lastThought: string | null;
   lastActivity: number;
 }
 
@@ -80,6 +81,7 @@ function ensureAgent(sessionId: string, filePath: string): AgentState {
     inputTokens: 0,
     outputTokens: 0,
     cacheReadTokens: 0,
+    lastThought: null,
     lastActivity: Date.now(),
   };
   agentsBySession.set(sessionId, agent);
@@ -124,8 +126,8 @@ function processEntry(
 
   const content = Array.isArray(message?.content) ? message!.content : [];
 
-  // Emit the latest text block as a "thought" bubble (assistant messages only).
-  if (emit && type === 'assistant') {
+  // Capture the latest text block as a "thought" bubble (assistant messages only).
+  if (type === 'assistant') {
     const lastText = content
       .filter(
         (c): c is { type: string; text: string } =>
@@ -135,7 +137,10 @@ function processEntry(
       .filter(Boolean)
       .pop();
     if (lastText) {
-      broadcast({ type: 'agentThought', id: agent.id, text: lastText.slice(0, 240) });
+      agent.lastThought = lastText.slice(0, 240);
+      if (emit) {
+        broadcast({ type: 'agentThought', id: agent.id, text: agent.lastThought });
+      }
     }
   }
 
@@ -235,9 +240,13 @@ function readNewLines(filePath: string): void {
         if (sid !== agent.sessionId) agent = ensureAgent(sid, filePath);
         processEntry(agent, entry, !isInitialScan);
       }
-      // On initial scan we don't stream — flush token total + status once.
+      // On initial scan we don't stream — flush token total, last thought, and
+      // status once.
       if (isInitialScan && agent) {
         emitTokenUsage(agent);
+        if (agent.lastThought) {
+          broadcast({ type: 'agentThought', id: agent.id, text: agent.lastThought });
+        }
         broadcast({ type: 'agentStatus', id: agent.id, status: 'waiting' });
       }
 
@@ -320,6 +329,9 @@ wss.on('connection', (ws) => {
         cacheReadTokens: a.cacheReadTokens,
       }),
     );
+    if (a.lastThought) {
+      ws.send(JSON.stringify({ type: 'agentThought', id: a.id, text: a.lastThought }));
+    }
     for (const [toolId, toolName] of a.activeTools) {
       ws.send(JSON.stringify({ type: 'agentToolStart', id: a.id, toolId, status: toolName }));
     }

@@ -171,7 +171,29 @@ export function ToolOverlay({
               zIndex: isSelected ? 42 : 41,
             }}
           >
-            <div className="flex items-center border-border px-8 pt-2 pb-4 gap-5 pixel-panel whitespace-nowrap max-w-2xs">
+            <div
+              className="flex items-center border-border px-8 pt-2 pb-4 gap-5 pixel-panel whitespace-nowrap max-w-2xs"
+              style={{ position: 'relative' }}
+            >
+              {totalTokens > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 2,
+                    right: 4,
+                    fontSize: 10,
+                    opacity: 0.75,
+                    lineHeight: 1,
+                  }}
+                  title={`${Math.round(tokenRatio * 100)}% context (in: ${ch.inputTokens.toLocaleString()}, out: ${ch.outputTokens.toLocaleString()})`}
+                >
+                  {totalTokens < 1000
+                    ? `${totalTokens}t`
+                    : totalTokens < 1_000_000
+                      ? `${(totalTokens / 1000).toFixed(1)}kt`
+                      : `${(totalTokens / 1_000_000).toFixed(2)}Mt`}
+                </span>
+              )}
               {dotColor && (
                 <span
                   className={`w-6 h-6 rounded-full shrink-0 ${isActive && !hasPermission ? 'pixel-pulse' : ''}`}
@@ -234,42 +256,19 @@ export function ToolOverlay({
               <div
                 style={{
                   width: FUEL_GAUGE_WIDTH_PX,
+                  height: FUEL_GAUGE_HEIGHT_PX,
+                  background: FUEL_GAUGE_BG,
                   marginTop: 2,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 1,
                 }}
-                title={`${Math.round(tokenRatio * 100)}% context used (${(totalTokens / 1000).toFixed(1)}k tokens — in: ${ch.inputTokens.toLocaleString()}, out: ${ch.outputTokens.toLocaleString()})`}
+                title={`${Math.round(tokenRatio * 100)}% context used`}
               >
-                <span
-                  style={{
-                    fontSize: 11,
-                    opacity: 0.85,
-                    lineHeight: 1,
-                  }}
-                >
-                  {totalTokens < 1000
-                    ? `${totalTokens} tok`
-                    : totalTokens < 1_000_000
-                      ? `${(totalTokens / 1000).toFixed(1)}k tok`
-                      : `${(totalTokens / 1_000_000).toFixed(2)}M tok`}
-                </span>
                 <div
                   style={{
-                    width: '100%',
-                    height: FUEL_GAUGE_HEIGHT_PX,
-                    background: FUEL_GAUGE_BG,
+                    width: `${Math.min(tokenRatio * 100, 100)}%`,
+                    height: '100%',
+                    background: getFuelColor(tokenRatio),
                   }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.min(tokenRatio * 100, 100)}%`,
-                      height: '100%',
-                      background: getFuelColor(tokenRatio),
-                    }}
-                  />
-                </div>
+                />
               </div>
             )}
           </div>
