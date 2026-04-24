@@ -196,4 +196,6 @@ export interface Character {
   inputTokens: number;
   /** Cumulative output tokens consumed */
   outputTokens: number;
+  /** Latest plain-text block from the agent ("thought"), short preview. */
+  thought: string | null;
 }

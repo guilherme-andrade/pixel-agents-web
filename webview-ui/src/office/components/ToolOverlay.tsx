@@ -205,6 +205,15 @@ export function ToolOverlay({
                     {ch.folderName}
                   </span>
                 )}
+                {ch.thought && (
+                  <span
+                    className="text-2xs leading-tight block opacity-80 italic mt-1"
+                    style={{ maxWidth: 260, whiteSpace: 'normal', wordBreak: 'break-word' }}
+                    title={ch.thought}
+                  >
+                    {ch.thought.length > 140 ? `${ch.thought.slice(0, 140)}…` : ch.thought}
+                  </span>
+                )}
               </div>
               {isSelected && !isSub && (
                 <Button
@@ -221,7 +230,7 @@ export function ToolOverlay({
                 </Button>
               )}
             </div>
-            {isTeamAgent && totalTokens > 0 && (
+            {totalTokens > 0 && (
               <div
                 style={{
                   width: FUEL_GAUGE_WIDTH_PX,
