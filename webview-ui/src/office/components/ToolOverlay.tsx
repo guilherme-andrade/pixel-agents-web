@@ -252,25 +252,6 @@ export function ToolOverlay({
                 </Button>
               )}
             </div>
-            {totalTokens > 0 && (
-              <div
-                style={{
-                  width: FUEL_GAUGE_WIDTH_PX,
-                  height: FUEL_GAUGE_HEIGHT_PX,
-                  background: FUEL_GAUGE_BG,
-                  marginTop: 2,
-                }}
-                title={`${Math.round(tokenRatio * 100)}% context used`}
-              >
-                <div
-                  style={{
-                    width: `${Math.min(tokenRatio * 100, 100)}%`,
-                    height: '100%',
-                    background: getFuelColor(tokenRatio),
-                  }}
-                />
-              </div>
-            )}
           </div>
         );
       })}
