@@ -37,11 +37,12 @@ interface AgentState {
   offset: number;
   pendingLine: string;
   activeTools: Map<string, string>;
-  completedToolIds: Set<string>; // tool_result seen (possibly before tool_use)
+  completedToolIds: Set<string>;
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
   lastThought: string | null;
+  status: 'active' | 'waiting';
   lastActivity: number;
 }
 
@@ -82,6 +83,7 @@ function ensureAgent(sessionId: string, filePath: string): AgentState {
     outputTokens: 0,
     cacheReadTokens: 0,
     lastThought: null,
+    status: 'active',
     lastActivity: Date.now(),
   };
   agentsBySession.set(sessionId, agent);
@@ -101,12 +103,19 @@ function emitTokenUsage(agent: AgentState): void {
   });
 }
 
+function setStatus(agent: AgentState, next: 'active' | 'waiting', emit: boolean): void {
+  if (agent.status === next) return;
+  agent.status = next;
+  if (emit) broadcast({ type: 'agentStatus', id: agent.id, status: next });
+}
+
 function processEntry(
   agent: AgentState,
   entry: Record<string, unknown>,
   emit: boolean,
 ): void {
   agent.lastActivity = Date.now();
+  setStatus(agent, 'active', emit);
 
   const type = entry.type as string | undefined;
   if (type !== 'assistant' && type !== 'user') return;
@@ -166,9 +175,11 @@ function processEntry(
       const existed = agent.activeTools.delete(toolId);
       if (emit && existed) {
         broadcast({ type: 'agentToolDone', id: agent.id, toolId });
+        // No tools left — clear the tool overlay. Status stays 'active'
+        // (agent may still be thinking/writing text); the 3-min idle sweep
+        // handles waiting.
         if (agent.activeTools.size === 0) {
           broadcast({ type: 'agentToolsClear', id: agent.id });
-          broadcast({ type: 'agentStatus', id: agent.id, status: 'waiting' });
         }
       }
     }
@@ -240,14 +251,13 @@ function readNewLines(filePath: string): void {
         if (sid !== agent.sessionId) agent = ensureAgent(sid, filePath);
         processEntry(agent, entry, !isInitialScan);
       }
-      // On initial scan we don't stream — flush token total, last thought, and
-      // status once.
+      // On initial scan we don't stream — flush token total + last thought.
+      // Status is derived from mtime vs the idle window (below).
       if (isInitialScan && agent) {
         emitTokenUsage(agent);
         if (agent.lastThought) {
           broadcast({ type: 'agentThought', id: agent.id, text: agent.lastThought });
         }
-        broadcast({ type: 'agentStatus', id: agent.id, status: 'waiting' });
       }
 
       if (agent) {
@@ -262,17 +272,26 @@ function readNewLines(filePath: string): void {
   }
 }
 
-// ── Idle GC: close agents that stopped writing ─────────────────────────────
+// ── Idle sweep ────────────────────────────────────────────────────────────
+// Every 20s: flip agents with no activity in IDLE_MS to 'waiting'. Close them
+// entirely after CLOSE_MS (much longer).
+const IDLE_WAIT_MS = Number(process.env.IDLE_WAIT_MS || 3 * 60 * 1000);
+const CLOSE_MS = Number(process.env.CLOSE_MS || 30 * 60 * 1000);
 setInterval(() => {
   const now = Date.now();
   for (const [sid, agent] of agentsBySession) {
-    if (now - agent.lastActivity > IDLE_MS) {
+    const silence = now - agent.lastActivity;
+    if (silence > CLOSE_MS) {
       agentsBySession.delete(sid);
       agentsByFile.delete(agent.filePath);
       broadcast({ type: 'agentClosed', id: agent.id });
+      continue;
+    }
+    if (silence > IDLE_WAIT_MS) {
+      setStatus(agent, 'waiting', true);
     }
   }
-}, 60_000);
+}, 20_000);
 
 // ── File watcher ───────────────────────────────────────────────────────────
 // chokidar with a glob and deep nested paths can be flaky on macOS fsevents.
@@ -335,9 +354,7 @@ wss.on('connection', (ws) => {
     for (const [toolId, toolName] of a.activeTools) {
       ws.send(JSON.stringify({ type: 'agentToolStart', id: a.id, toolId, status: toolName }));
     }
-    if (a.activeTools.size === 0) {
-      ws.send(JSON.stringify({ type: 'agentStatus', id: a.id, status: 'waiting' }));
-    }
+    ws.send(JSON.stringify({ type: 'agentStatus', id: a.id, status: a.status }));
   }
 
   ws.on('close', () => {
