@@ -1,0 +1,17 @@
+# Caddy inside the pixel-agents-web container.
+# Upstream Caddy (multica.not-a-camp.com) strips /pixel via handle_path, so
+# from here's perspective requests land at /. base='./' in vite.config means
+# assets are served relatively, which works at any mount point.
+
+:3000 {
+	root * /srv
+	try_files {path} /index.html
+	file_server
+	encode zstd gzip
+	# SPA: unknown routes fall back to index.html (try_files above).
+	# Long cache on hashed assets; short cache on index.
+	@hashedAssets path_regexp ^/assets/.*\.[a-zA-Z0-9]{8,}\..+$
+	header @hashedAssets Cache-Control "public, max-age=31536000, immutable"
+	@html path /index.html /
+	header @html Cache-Control "no-cache"
+}
