@@ -1,0 +1,23 @@
+{
+  "name": "pixel-agents-bridge",
+  "version": "0.1.0",
+  "description": "Watches Claude Code JSONL transcripts and broadcasts agent events over WebSocket",
+  "type": "module",
+  "bin": {
+    "pixel-agents-bridge": "src/server.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "@types/ws": "^8.5.11",
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.0"
+  }
+}

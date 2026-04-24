@@ -506,6 +506,10 @@ export function useExtensionMessages(
       } else if (msg.type === 'agentTokenUsage') {
         const id = msg.id as number;
         os.setAgentTokens(id, msg.inputTokens as number, msg.outputTokens as number);
+      } else if (msg.type === 'agentThought') {
+        const id = msg.id as number;
+        const text = msg.text as string | null;
+        os.setAgentThought(id, text && text.length ? text : null);
       }
     };
     window.addEventListener('message', handler);

@@ -711,6 +711,12 @@ export class OfficeState {
     ch.outputTokens = outputTokens;
   }
 
+  setAgentThought(id: number, text: string | null): void {
+    const ch = this.characters.get(id);
+    if (!ch) return;
+    ch.thought = text;
+  }
+
   update(dt: number): void {
     // Furniture animation cycling
     const prevFrame = Math.floor(this.furnitureAnimTimer / FURNITURE_ANIM_INTERVAL_SEC);

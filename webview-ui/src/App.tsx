@@ -36,11 +36,14 @@ function getOfficeState(): OfficeState {
 }
 
 function App() {
-  // Browser runtime (dev or static dist): dispatch mock messages after the
-  // useExtensionMessages listener has been registered.
+  // Browser runtime (dev or static dist):
+  //   - browserMock dispatches asset-loading events (sprites, floor, walls, furniture).
+  //   - bridgeClient opens a WebSocket to pixel-agents-bridge and pipes real
+  //     agent lifecycle + tool-call events into the same window.message bus.
   useEffect(() => {
     if (isBrowserRuntime) {
       void import('./browserMock.js').then(({ dispatchMockMessages }) => dispatchMockMessages());
+      void import('./bridgeClient.js').then(({ startBridgeClient }) => startBridgeClient());
     }
   }, []);
 
