@@ -6,10 +6,27 @@
  * Only active in browser (non-VS Code) runtime.
  */
 
-const DEFAULT_URL =
-  (typeof window !== 'undefined' && (window as unknown as { __BRIDGE_WS__?: string }).__BRIDGE_WS__) ||
-  (typeof import.meta !== 'undefined' && (import.meta as { env?: Record<string, string> }).env?.VITE_BRIDGE_WS) ||
-  `ws://${typeof location !== 'undefined' ? location.hostname : 'localhost'}:8787`;
+// Production: same-origin at /pixel/ws (Caddy path-routes to pixel-bridge).
+// Dev (localhost): fall back to the standalone bridge on :8787.
+function defaultWsUrl(): string {
+  if (typeof window !== 'undefined') {
+    const overridden = (window as unknown as { __BRIDGE_WS__?: string }).__BRIDGE_WS__;
+    if (overridden) return overridden;
+  }
+  if (typeof import.meta !== 'undefined') {
+    const env = (import.meta as { env?: Record<string, string> }).env;
+    if (env?.VITE_BRIDGE_WS) return env.VITE_BRIDGE_WS;
+  }
+  if (typeof location === 'undefined') return 'ws://localhost:8787';
+  // Same-origin deployed: wss on /pixel/ws
+  if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    return `${proto}://${location.host}/pixel/ws`;
+  }
+  return `ws://${location.hostname}:8787`;
+}
+
+const DEFAULT_URL = defaultWsUrl();
 
 let ws: WebSocket | null = null;
 let reconnectDelay = 500;
