@@ -198,4 +198,6 @@ export interface Character {
   outputTokens: number;
   /** Latest plain-text block from the agent ("thought"), short preview. */
   thought: string | null;
+  /** Session title — derived from the first user prompt. */
+  sessionTitle: string | null;
 }

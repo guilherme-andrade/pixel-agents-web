@@ -223,8 +223,17 @@ export function ToolOverlay({
                 >
                   {activityText}
                 </span>
+                {ch.sessionTitle && (
+                  <span
+                    className="block leading-tight overflow-hidden text-ellipsis"
+                    style={{ fontSize: 14, fontWeight: 500, maxWidth: 260, whiteSpace: 'normal' }}
+                    title={ch.sessionTitle}
+                  >
+                    {ch.sessionTitle.length > 60 ? `${ch.sessionTitle.slice(0, 60)}…` : ch.sessionTitle}
+                  </span>
+                )}
                 {ch.folderName && (
-                  <span className="text-2xs leading-none overflow-hidden text-ellipsis block">
+                  <span className="text-2xs leading-none overflow-hidden text-ellipsis block opacity-70">
                     {ch.folderName}
                   </span>
                 )}

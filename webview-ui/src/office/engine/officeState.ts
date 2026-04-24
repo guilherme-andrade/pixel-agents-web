@@ -717,6 +717,12 @@ export class OfficeState {
     ch.thought = text;
   }
 
+  setAgentSessionTitle(id: number, title: string | null): void {
+    const ch = this.characters.get(id);
+    if (!ch) return;
+    ch.sessionTitle = title;
+  }
+
   update(dt: number): void {
     // Furniture animation cycling
     const prevFrame = Math.floor(this.furnitureAnimTimer / FURNITURE_ANIM_INTERVAL_SEC);

@@ -87,6 +87,7 @@ export function createCharacter(
     inputTokens: 0,
     outputTokens: 0,
     thought: null,
+    sessionTitle: null,
   };
 }
 

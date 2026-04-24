@@ -510,6 +510,10 @@ export function useExtensionMessages(
         const id = msg.id as number;
         const text = msg.text as string | null;
         os.setAgentThought(id, text && text.length ? text : null);
+      } else if (msg.type === 'agentSessionTitle') {
+        const id = msg.id as number;
+        const title = msg.title as string | null;
+        os.setAgentSessionTitle(id, title && title.length ? title : null);
       }
     };
     window.addEventListener('message', handler);

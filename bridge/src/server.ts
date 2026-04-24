@@ -42,6 +42,8 @@ interface AgentState {
   outputTokens: number;
   cacheReadTokens: number;
   lastThought: string | null;
+  /** First non-system user text — doubles as the session title. */
+  sessionTitle: string | null;
   status: 'active' | 'waiting';
   lastActivity: number;
 }
@@ -83,6 +85,7 @@ function ensureAgent(sessionId: string, filePath: string): AgentState {
     outputTokens: 0,
     cacheReadTokens: 0,
     lastThought: null,
+    sessionTitle: null,
     status: 'active',
     lastActivity: Date.now(),
   };
@@ -134,6 +137,32 @@ function processEntry(
   }
 
   const content = Array.isArray(message?.content) ? message!.content : [];
+
+  // First non-system user message becomes the session title.
+  if (type === 'user' && !agent.sessionTitle && !entry.isSidechain) {
+    let userText: string | null = null;
+    if (typeof (message as { content?: unknown } | undefined)?.content === 'string') {
+      userText = (message as { content: string }).content;
+    } else if (Array.isArray(message?.content)) {
+      for (const c of message!.content as Array<Record<string, unknown>>) {
+        if (c && c.type === 'text' && typeof c.text === 'string') {
+          userText = c.text as string;
+          break;
+        }
+      }
+    }
+    if (
+      userText &&
+      !userText.startsWith('[Request interrupted') &&
+      !userText.startsWith('<') &&
+      !userText.startsWith('Caveat:')
+    ) {
+      agent.sessionTitle = userText.slice(0, 80);
+      if (emit) {
+        broadcast({ type: 'agentSessionTitle', id: agent.id, title: agent.sessionTitle });
+      }
+    }
+  }
 
   // Capture the latest text block as a "thought" bubble. Accept both regular
   // assistant text and extended-thinking ("thinking") items.
@@ -254,12 +283,14 @@ function readNewLines(filePath: string): void {
         if (sid !== agent.sessionId) agent = ensureAgent(sid, filePath);
         processEntry(agent, entry, !isInitialScan);
       }
-      // On initial scan we don't stream — flush token total + last thought.
-      // Status is derived from mtime vs the idle window (below).
+      // On initial scan we don't stream — flush token total + last thought + title.
       if (isInitialScan && agent) {
         emitTokenUsage(agent);
         if (agent.lastThought) {
           broadcast({ type: 'agentThought', id: agent.id, text: agent.lastThought });
+        }
+        if (agent.sessionTitle) {
+          broadcast({ type: 'agentSessionTitle', id: agent.id, title: agent.sessionTitle });
         }
       }
 
@@ -353,6 +384,9 @@ wss.on('connection', (ws) => {
         cacheReadTokens: a.cacheReadTokens,
       }),
     );
+    if (a.sessionTitle) {
+      ws.send(JSON.stringify({ type: 'agentSessionTitle', id: a.id, title: a.sessionTitle }));
+    }
     if (a.lastThought) {
       ws.send(JSON.stringify({ type: 'agentThought', id: a.id, text: a.lastThought }));
     }
