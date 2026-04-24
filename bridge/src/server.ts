@@ -135,14 +135,17 @@ function processEntry(
 
   const content = Array.isArray(message?.content) ? message!.content : [];
 
-  // Capture the latest text block as a "thought" bubble (assistant messages only).
+  // Capture the latest text block as a "thought" bubble. Accept both regular
+  // assistant text and extended-thinking ("thinking") items.
   if (type === 'assistant') {
     const lastText = content
       .filter(
-        (c): c is { type: string; text: string } =>
-          !!c && typeof c === 'object' && (c as { type?: string }).type === 'text',
+        (c): c is { type: string; text?: string; thinking?: string } =>
+          !!c && typeof c === 'object' &&
+          ((c as { type?: string }).type === 'text' ||
+           (c as { type?: string }).type === 'thinking'),
       )
-      .map((c) => c.text)
+      .map((c) => c.text || c.thinking || '')
       .filter(Boolean)
       .pop();
     if (lastText) {
@@ -322,6 +325,7 @@ watcher.on('add', (p) => {
 });
 watcher.on('change', (p) => {
   if (!p.endsWith('.jsonl')) return;
+  console.log(`[bridge] change: ${path.basename(p)}`);
   readNewLines(p);
 });
 watcher.on('ready', () => console.log(`[bridge] initial scan done, ${addedCount} .jsonl files added, watching ${BASE}`));
