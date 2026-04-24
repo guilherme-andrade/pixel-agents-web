@@ -179,19 +179,20 @@ export function ToolOverlay({
                 <span
                   style={{
                     position: 'absolute',
-                    top: 2,
-                    right: 4,
-                    fontSize: 10,
-                    opacity: 0.75,
+                    top: 4,
+                    right: 8,
+                    fontSize: 16,
+                    fontWeight: 500,
+                    opacity: 0.9,
                     lineHeight: 1,
                   }}
                   title={`${Math.round(tokenRatio * 100)}% context (in: ${ch.inputTokens.toLocaleString()}, out: ${ch.outputTokens.toLocaleString()})`}
                 >
                   {totalTokens < 1000
-                    ? `${totalTokens}t`
+                    ? `${totalTokens} t`
                     : totalTokens < 1_000_000
-                      ? `${(totalTokens / 1000).toFixed(1)}kt`
-                      : `${(totalTokens / 1_000_000).toFixed(2)}Mt`}
+                      ? `${(totalTokens / 1000).toFixed(1)}k t`
+                      : `${(totalTokens / 1_000_000).toFixed(2)}M t`}
                 </span>
               )}
               {dotColor && (
