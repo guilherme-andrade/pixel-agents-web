@@ -182,8 +182,8 @@ export function ToolOverlay({
                     top: 4,
                     right: 8,
                     fontSize: 16,
-                    fontWeight: 500,
-                    opacity: 0.9,
+                    fontWeight: 600,
+                    color: '#facc15', // tailwind yellow-400
                     lineHeight: 1,
                   }}
                   title={`${Math.round(tokenRatio * 100)}% context (in: ${ch.inputTokens.toLocaleString()}, out: ${ch.outputTokens.toLocaleString()})`}

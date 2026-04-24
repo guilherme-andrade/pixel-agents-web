@@ -296,10 +296,11 @@ setInterval(() => {
 // ── File watcher ───────────────────────────────────────────────────────────
 // chokidar with a glob and deep nested paths can be flaky on macOS fsevents.
 // Watch the base dir directly (recursive) and filter for .jsonl in handlers.
+// awaitWriteFinish is intentionally off: transcripts are written continuously
+// during live sessions and never settle, so it would block every update.
 const watcher = chokidar.watch(BASE, {
   ignoreInitial: false,
   persistent: true,
-  awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
 });
 
 let addedCount = 0;
